@@ -1,0 +1,26 @@
+{
+  "name": "forge-test-server",
+  "version": "1.0.0",
+  "description": "a server that calls into Forge API",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mihaido/ForgeTest.git"
+  },
+  "keywords": [
+    "forge"
+  ],
+  "author": "Mihai Dobrescu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mihaido/ForgeTest/issues"
+  },
+  "homepage": "https://github.com/mihaido/ForgeTest#readme",
+  "dependencies": {
+    "express": "^4.15.2",
+    "forge-apis": "^0.3.0"
+  }
+}

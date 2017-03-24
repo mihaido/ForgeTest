@@ -1,0 +1,4 @@
+
+# ignore dependencies folder
+Server/node_modules/
+Server/secret.js
