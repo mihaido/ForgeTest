@@ -1,0 +1,53 @@
+body{
+  width: 900px;
+}
+
+div{
+  clear: both;
+}
+
+h1{
+  text-align: center;
+}
+
+h3, h5{
+  text-align: right;
+}
+
+.error-info{
+  color: red;
+  display: none;
+}
+
+.section-header{
+	background-color: #bbb;
+}
+
+tr{
+  padding: 5px;
+}
+
+.content-hidden{
+	display: none;
+}
+
+.content-visible{
+	display: inline-block;
+}
+
+.label, .button{
+  display: inline-block;
+}
+
+.button{
+  background-color: #ccc;
+  border-radius: 2px;
+  border-style: solid;
+  border-width: thin;
+  padding: 1px;
+  cursor: pointer;
+}
+
+.button:hover{
+  background-color: #aae;
+}

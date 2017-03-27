@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="main.css">
+    <script src="jquery.js"></script>
+    <script src="main.js"></script>
+  </head>
+  <body>
+    <section class="header">
+      <h1>Forge test</h1>
+      <h3>by Mihai Dobrescu<h3>
+      <h5>2017, March 20<h3>
+    </section>
+
+    <section class="error-info">
+      <h4>info here</h4>
+    </section>
+
+    <!-- section for dealing with data storage, S3 buckets, ...-->
+		<section class="data-storage">
+			<h4 class="section-header">buckets:</h4>
+			<section class="content content-hidden">
+				<table id="table-buckets">
+					<thead>
+						<tr>
+              <th>del</th>
+							<th>name</th>
+							<th>creation date</th>
+						</tr>
+					</thead>
+					<tbody>
+					</tbody>
+				</table>
+        <section>
+          <h4 class="label">New bucket name:</h4><input type="text" id="new-bucket-name"/><h4 id="new-bucket-add" class="button"> Add Bucket </h4>
+        </section>
+      </section>
+    </section>
+  </body>
+</html>
