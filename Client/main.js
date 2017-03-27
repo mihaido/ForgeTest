@@ -20,13 +20,17 @@ $(document).ready(function(){
 	$('#new-bucket-add').on('click', function(){
 		addBucket();
 	});
+
+    $('#new-bucket-item-add').on('click', function(){
+		uploadFile();
+	});
 });
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 // utilities
 //////////////////////////////////////////////////////////////////////////////////////////////
-var buildServerRequest = function(callType, endPoint, params, fcSucceed, fcFail){
+var buildServerRequest = function(callType, endPoint, params, fcSucceed, fcFail, bContentType){
 	var xhr = new XMLHttpRequest();
 	if ("withCredentials" in xhr){
     // Check if the XMLHttpRequest object has a "withCredentials" property.
@@ -41,7 +45,8 @@ var buildServerRequest = function(callType, endPoint, params, fcSucceed, fcFail)
 		}
 
         xhr.open(callType, url, true);
-		xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        if((bContentType == null) || (bContentType == true)) // by default set content type
+            xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 
 		xhr.onload = function(){
 			var response = xhr.responseText;
@@ -165,5 +170,95 @@ var eraseBucket = function(){
 		"name="+bucketName,
 		getBuckets,
 		function (error) { reportError('failed to erase bucket: ' + error.statusMessage);}
+	);
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+// bucket content
+//////////////////////////////////////////////////////////////////////////////////////////////
+var currBucketName;
+var addBucketsItemsRows = function(table, items){
+
+	if(null != items){
+		var nLength = items.length;
+		for(var i=0; i<nLength; i++){
+			var item = items[i];
+			var newRow = document.createElement('tr');
+			var cell0 = newRow.insertCell(0);
+			cell0.innerHTML = 'del';
+			$(cell0).addClass('delete');
+			$(cell0).addClass('button');
+
+			var cell1 = newRow.insertCell(1);
+			cell1.innerHTML = item.objectKey;
+			$(cell1).addClass('name');
+
+			var cell2 = newRow.insertCell(2);
+			cell2.innerHTML = item.size;
+
+			table.append(newRow);
+		}
+
+        //
+		// add delete row reactor
+		table.find('.delete').on('click', eraseBucketItem);
+	}
+};
+
+var displayBucketContent = function(bucketName) {
+
+	var table = $('#table-bucket-contents');
+	table.find('tbody').find('tr').remove();
+
+	buildServerRequest(
+		'get',
+		'getBucketContent',
+		"name="+bucketName,
+		function(response, resObj){
+			if(null != resObj){
+				if(('body' in resObj) && ('items' in resObj.body)){
+					var items = resObj.body.items;
+					addBucketsItemsRows(table, items);
+				}
+			}
+		},
+		function(error){
+			reportError('failed to get bucket details: ' + error.statusMessage);
+		});
+}
+
+var uploadFile = function() {
+	var fileInput = $('#file-input');
+	var files = fileInput[0].files;
+
+	if(files.length > 0){
+		var file = files[0];
+
+        var formData = new FormData();
+		formData.append("bucketName", currBucketName);
+		formData.append("fileName", file.name);
+		formData.append("fileData", file);
+
+        buildServerRequest('post', 'uploadFile', formData,
+            function(response, resObj){ 
+                displayBucketContent(currBucketName);
+            },
+            function(error){
+                reportError('failed to get buckets: '+ error.statusMessage);
+            },
+            false // do not set content type
+        );
+	}
+}
+
+var eraseBucketItem = function(){
+	var bucketItemName = $(this).closest('tr').find('.name').text();
+
+	buildServerRequest(
+		'post',
+		'delBucketItem',
+        "bucketname=" + window.encodeURIComponent(currBucketName) + "&" + "name=" + bucketItemName,
+        function(response, resObj) {displayBucketContent(currBucketName);},
+		function (error) { reportError('failed to erase bucket item: ' + error.statusMessage);}
 	);
 };

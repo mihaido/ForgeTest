@@ -22,6 +22,12 @@ app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
   extended: true
 })); 
 
+var multer = require('multer')
+var upload = multer(/*{ dest: 'uploads/' }*/)
+
+
+
+
 var ForgeSDK = require('forge-apis');
 var Secret = require('./secret.js');
 
@@ -47,6 +53,7 @@ var oAuth2TwoLegged = new ForgeSDK.AuthClientTwoLegged(Secret.CLIENT_ID, Secret.
 ], autoRefresh);
 
 var BucketsApi = new ForgeSDK.BucketsApi(); // Buckets Client
+var ObjectsApi = new ForgeSDK.ObjectsApi();
 
 
 app.listen(3000, function () {
@@ -82,6 +89,10 @@ var returnOk = function (result, data) {
 app.get('/', function (req, res) {
   res.send('Hello World!')
 })
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// buckets editing - Buckets API
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 app.get('/getBuckets', function (req, res) {
   oAuth2TwoLegged.authenticate().then(
@@ -131,6 +142,72 @@ app.post('/delBucket', function (req, res) {
 				},
 				function (err) {
 					returnErr(res, err.statusMessage);
+				});
+    },
+    function (error){
+      res.send('Authentication failed: ' + error['more info']);
+    });
+})
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// buckets contents editing - Objects API
+//////////////////////////////////////////////////////////////////////////////////////////////////
+app.get('/getBucketContent', function (req, res) {
+
+   res.setHeader('Content-Type', 'application/json');
+
+   var name = req.query.name;
+
+	 oAuth2TwoLegged.authenticate().then(
+      function (credentials) {
+				ObjectsApi.getObjects(name, null, oAuth2TwoLegged, credentials).then(
+					function (result) {
+						returnOk(res, result);
+					},
+					function (err) {
+						returnErr(res, err.statusMessage);
+					});
+      },
+      function () {
+         returnErr('unauthorized');
+      });
+});
+
+app.post('/uploadFile', upload.single('fileData'), function (req, res) {
+	
+	var bucketName = req.body.bucketName;
+	var fileName = req.body.fileName;
+	var fileData = req.file;
+
+	oAuth2TwoLegged.authenticate().then(
+		function () {
+			ObjectsApi.uploadObject(bucketName, fileName, fileData.size, fileData.buffer, {}, oAuth2TwoLegged, oAuth2TwoLegged.getCredentials()).then(
+				function (info) {
+					returnOk(res);
+				}, 
+        function (err) {
+					returnErr(res, err.statusMessage);
+				})
+		},
+		function (err) {
+			returnErr(res, err.statusMessage);
+		});
+});
+
+app.post('/delBucketItem', function (req, res) {
+
+  var bucketname = req.body.bucketname;
+  var name = req.body.name;
+
+  oAuth2TwoLegged.authenticate().then(
+    function(credentials){
+      ObjectsApi.deleteObject(bucketName, name, oAuth2TwoLegged, credentials).then(
+				function () {
+					returnOk(res);
+				},
+				function (err) {
+					returnErr(res, err);
 				});
     },
     function (error){

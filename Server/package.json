@@ -22,6 +22,7 @@
   "dependencies": {
     "body-parser": "^1.17.1",
     "express": "^4.15.2",
-    "forge-apis": "^0.3.0"
+    "forge-apis": "^0.3.0",
+    "multer": "^1.3.0"
   }
 }
