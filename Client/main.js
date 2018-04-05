@@ -24,6 +24,15 @@ $(document).ready(function(){
     $('#new-bucket-item-add').on('click', function(){
 		uploadFile();
 	});
+	
+	buildServerRequest('get', 'getAuthUserName', null,
+		function (response, resObj){
+			$('.login-name').text('Authenticated as: ' + resObj.name);
+		},
+		function (error){
+			$('.login-name').text('Authenticated as: anonymous');
+		}
+	);
 });
 
 
@@ -36,7 +45,7 @@ var buildServerRequest = function(callType, endPoint, params, fcSucceed, fcFail,
     // Check if the XMLHttpRequest object has a "withCredentials" property.
     // "withCredentials" only exists on XMLHTTPRequest2 objects.
 
-		var url = 'http://buc4vfhzy1:3000/' + endPoint;
+		var url = 'http://bucs4bu0930:3000/' + endPoint;
 
 		if('get' == callType){
 			if(null != params){
@@ -262,3 +271,4 @@ var eraseBucketItem = function(){
 		function (error) { reportError('failed to erase bucket item: ' + error.statusMessage);}
 	);
 };
+

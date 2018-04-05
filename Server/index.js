@@ -26,8 +26,6 @@ var multer = require('multer')
 var upload = multer(/*{ dest: 'uploads/' }*/)
 
 
-
-
 var ForgeSDK = require('forge-apis');
 var Secret = require('./secret.js');
 
@@ -89,6 +87,8 @@ var returnOk = function (result, data) {
 app.get('/', function (req, res) {
   res.send('Hello World!')
 })
+
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // buckets editing - Buckets API
@@ -270,3 +270,42 @@ var createBucketIfNotExist = function (bucketKey) {
 };
 
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// three legged auth
+//////////////////////////////////////////////////////////////////////////////////////////////////
+var Auth3l = require('./auth-3-leg.js');
+
+app.get('/auth3l', function (req, res) {
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+
+  Auth3l.setupCredentials(req.query.code, res);
+});
+
+app.get('/login', function (req, res) {
+
+  var url = Auth3l.generateAuthUrl();
+  res.redirect(url);
+});
+
+app.get('/getAuthUserName', function (req, res) {
+  var ret = 'anonymous';
+
+  res.setHeader('Content-Type', 'application/json');
+
+  Auth3l.ensureValidToken().then(
+     function (result) {
+        var UserProfileApi = new ForgeSDK.UserProfileApi();
+        UserProfileApi.getUserProfile(result.auth, result.credentials).then(
+           function (user) {
+              returnOk(res, { name: user.body.firstName + ' ' + user.body.lastName });
+           },
+           function (error) {
+              returnErr(res, error);
+           });
+     },
+     function (err) {
+       returnErr(res, err.statusMessage);
+     });
+});
