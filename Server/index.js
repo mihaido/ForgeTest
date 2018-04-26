@@ -22,270 +22,56 @@ app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
   extended: true
 })); 
 
-var multer = require('multer')
-var upload = multer(/*{ dest: 'uploads/' }*/)
-
+//
+// not used here right now
+//var multer = require('multer')
+//var upload = multer(/*{ dest: 'uploads/' }*/) 
 
 var ForgeSDK = require('forge-apis');
-var Secret = require('./secret.js');
 
-// Initialize the 2-legged OAuth2 client, set specific scopes and optionally set the `autoRefresh` parameter to true
-// if you want the token to auto refresh
-var autoRefresh = true; // or false
+var AuthUser = require('./auth-3-leg.js');
+var ErrHand = require('./error-handling.js');
 
-//
-// this is needed for buckets operations
-var oAuth2TwoLegged = new ForgeSDK.AuthClientTwoLegged(Secret.CLIENT_ID, Secret.CLIENT_SECRET, [
-	'user-profile:read',
-	'data:read',
-	'data:write',
-	'data:create',
-	'data:search',
-	'bucket:read',
-	'bucket:create',
-	'bucket:update',
-	'bucket:delete',
-	'code:all',
-	'account:read',
-	'account:write'
-], autoRefresh);
-
-var BucketsApi = new ForgeSDK.BucketsApi(); // Buckets Client
-var ObjectsApi = new ForgeSDK.ObjectsApi();
 
 
 app.listen(3000, function () {
   console.log('Example app listening on port 3000!')
 })
 
-var returnErr = function (result, errorString) {
-   result.writeHead(400);
-
-   var error;
-   if (null == errorString)
-      error = '{\"statusMessage\":\"failed\"}';
-   else
-      error = '{\"statusMessage\":\"' + errorString + '\"}';
-
-   result.end(error);
-}
-
-var returnOk = function (result, data) {
-   result.writeHead(200);
-
-   var json;
-   if (null != data)
-      json = JSON.stringify(data);
-   else
-      json = null;
-
-   result.end(json);
-}
-
-
-
+//
+// standard response if you call this service with no purpose
 app.get('/', function (req, res) {
   res.send('Hello World!')
 })
 
+//
+// add buckets editing routes
+require('./routes-buckets.js')(app)
 
+//
+// add hubs editing routes
+require('./routes-hubs.js')(app)
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// buckets editing - Buckets API
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-app.get('/getBuckets', function (req, res) {
-  oAuth2TwoLegged.authenticate().then(
-    function(credentials){
-      BucketsApi.getBuckets({}, oAuth2TwoLegged, credentials).then(
-        function (buckets) {
-          returnOk(res, buckets);
-        },
-        function (err) {
-          returnErr(res, err.statusMessage);
-        });
-    },
-    function (error){
-      res.send('Authentication failed: ' + error['more info']);
-    });
-})
-
-app.post('/addBucket', function (req, res) {
-
-  var name = req.body.name;
-
-  oAuth2TwoLegged.authenticate().then(
-    function(credentials){
-      createBucketIfNotExist(name + '_' + Secret.CLIENT_ID.toLowerCase()).then(
-        function () {
-          returnOk(res);
-        },
-        function (err) {
-          returnErr(res, err.statusMessage);
-        }
-      );
-    },
-    function (error){
-      res.send('Authentication failed: ' + error['more info']);
-    });
-})
-
-app.post('/delBucket', function (req, res) {
-
-  var name = req.body.name;
-
-  oAuth2TwoLegged.authenticate().then(
-    function(credentials){
-      BucketsApi.deleteBucket(name, oAuth2TwoLegged, credentials).then(
-				function () {
-					returnOk(res);
-				},
-				function (err) {
-					returnErr(res, err.statusMessage);
-				});
-    },
-    function (error){
-      res.send('Authentication failed: ' + error['more info']);
-    });
-})
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// buckets contents editing - Objects API
-//////////////////////////////////////////////////////////////////////////////////////////////////
-app.get('/getBucketContent', function (req, res) {
-
-   res.setHeader('Content-Type', 'application/json');
-
-   var name = req.query.name;
-
-	 oAuth2TwoLegged.authenticate().then(
-      function (credentials) {
-				ObjectsApi.getObjects(name, null, oAuth2TwoLegged, credentials).then(
-					function (result) {
-						returnOk(res, result);
-					},
-					function (err) {
-						returnErr(res, err.statusMessage);
-					});
-      },
-      function () {
-         returnErr('unauthorized');
-      });
-});
-
-app.post('/uploadFile', upload.single('fileData'), function (req, res) {
-	
-	var bucketName = req.body.bucketName;
-	var fileName = req.body.fileName;
-	var fileData = req.file;
-
-	oAuth2TwoLegged.authenticate().then(
-		function () {
-			ObjectsApi.uploadObject(bucketName, fileName, fileData.size, fileData.buffer, {}, oAuth2TwoLegged, oAuth2TwoLegged.getCredentials()).then(
-				function (info) {
-					returnOk(res);
-				}, 
-        function (err) {
-					returnErr(res, err.statusMessage);
-				})
-		},
-		function (err) {
-			returnErr(res, err.statusMessage);
-		});
-});
-
-app.post('/delBucketItem', function (req, res) {
-
-  var bucketname = req.body.bucketname;
-  var name = req.body.name;
-
-  oAuth2TwoLegged.authenticate().then(
-    function(credentials){
-      ObjectsApi.deleteObject(bucketName, name, oAuth2TwoLegged, credentials).then(
-				function () {
-					returnOk(res);
-				},
-				function (err) {
-					returnErr(res, err);
-				});
-    },
-    function (error){
-      res.send('Authentication failed: ' + error['more info']);
-    });
-})
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-// buckets utils
-///////////////////////////////////////////////////////////////////////////////////////////////////
-/**
- * Create a new bucket.
- * Uses the oAuth2TwoLegged object that you retrieved previously.
- * @param bucketKey
- */
-var createBucket = function (bucketKey) {
-   console.log("**** Creating Bucket : " + bucketKey);
-   var createBucketJson = { 'bucketKey': bucketKey, 'policyKey': 'temporary' };
-   return BucketsApi.createBucket(createBucketJson, {}, oAuth2TwoLegged, oAuth2TwoLegged.getCredentials());
-};
-
-/**
- * Gets the details of a bucket specified by a bucketKey.
- * Uses the oAuth2TwoLegged object that you retrieved previously.
- * @param bucketKey
- */
-var getBucketDetails = function (bucketKey) {
-   console.log("**** Getting bucket details : " + bucketKey);
-   return BucketsApi.getBucketDetails(bucketKey, oAuth2TwoLegged, oAuth2TwoLegged.getCredentials());
-};
-
-/**
- * This function first makes an API call to getBucketDetails endpoint with the provided bucketKey.
- * If the bucket doesn't exist - it makes another call to createBucket endpoint.
- * @param bucketKey
- * @returns {Promise - details of the bucket in Forge}
- */
-var createBucketIfNotExist = function (bucketKey) {
-   console.log("**** Creating bucket if not exist :", bucketKey);
-
-   return new Promise(function (resolve, reject) {
-      getBucketDetails(bucketKey).then(function (resp) {
-         resolve(resp);
-      },
-         function (err) {
-            if (err.statusCode === 404) {
-               createBucket(bucketKey).then(function (res) {
-                  resolve(res);
-               },
-                  function (err) {
-                     reject(err);
-                  })
-            }
-            else {
-               reject(err);
-            }
-         });
-   });
-};
+//
+// add derivatives routes
+require('./routes-derivatives.js')(app)
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // three legged auth
 //////////////////////////////////////////////////////////////////////////////////////////////////
-var Auth3l = require('./auth-3-leg.js');
 
 app.get('/auth3l', function (req, res) {
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
 
-  Auth3l.setupCredentials(req.query.code, res);
+  AuthUser.setupCredentials(req.query.code, res);
 });
 
 app.get('/login', function (req, res) {
 
-  var url = Auth3l.generateAuthUrl();
+  var url = AuthUser.generateAuthUrl();
   res.redirect(url);
 });
 
@@ -294,18 +80,18 @@ app.get('/getAuthUserName', function (req, res) {
 
   res.setHeader('Content-Type', 'application/json');
 
-  Auth3l.ensureValidToken().then(
+  AuthUser.ensureValidToken().then(
      function (result) {
         var UserProfileApi = new ForgeSDK.UserProfileApi();
         UserProfileApi.getUserProfile(result.auth, result.credentials).then(
            function (user) {
-              returnOk(res, { name: user.body.firstName + ' ' + user.body.lastName });
+              ErrHand.returnOk(res, { name: user.body.firstName + ' ' + user.body.lastName });
            },
            function (error) {
-              returnErr(res, error);
+              ErrHand.returnErr(res, error);
            });
      },
-     function (err) {
-       returnErr(res, err.statusMessage);
+     function (error) {
+       ErrHand.returnErr(res, 'User authentication failed: ' + error['more info']);
      });
 });

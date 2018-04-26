@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/mihaido/ForgeTest#readme",
   "dependencies": {
+    "base64-format": "^0.1.2",
     "body-parser": "^1.17.1",
     "express": "^4.15.2",
     "forge-apis": "^0.3.0",

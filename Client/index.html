@@ -1,26 +1,44 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <link rel="stylesheet" href="main.css">
-    <script src="jquery.js"></script>
-    <script src="main.js"></script>
-  </head>
-  <body>
-    <section class="header">
-		<h1>Forge test</h1>
-		<h3>by Mihai Dobrescu<h3>
-		<h5>2017, March 20<h3>
+	<head>
+		<link rel="stylesheet" href="main.css">
+		<link rel="stylesheet" href="jstree/themes/default/style.min.css" />
 		
-		<h5 class="login-name">Authenticated as: anonymous</h5>
-		<h5><a href='http://bucs4bu0930:3000/login'>login</a></h5>
-		<!--h5 class="login" id="login">login to adsk<h3-->
-    </section>
+		<!-- The Viewer CSS -->
+		<link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/style.min.css" type="text/css">
+		
+		<script src="jquery.js"></script>
+		
+		<!-- The Viewer JS -->
+		<script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/three.min.js"></script>
+		<script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/viewer3D.min.js"></script>
+		
+		<script src="main.js"></script>
+		<script src="jstree/jstree.min.js"></script>
+		
+	</head>
+		
+	<body>
+	
+		<section class="header">
+			<h1>Forge test</h1>
+			<h3>by Mihai Dobrescu<h3>
+			<h5>2017, March 20<h3>
+			
+			<h5 class="login-name">Authenticated as: anonymous</h5>
+			<h5><a href='http://bucs4bu0930:3000/login'>login</a></h5>
+			<!--h5 class="login" id="login">login to adsk<h3-->
+		</section>
 
-    <section class="error-info">
-      <h4>info here</h4>
-    </section>
+		<section class="header">
+			<h4>Application space (2-legged auth):</h4>
+		</section>
+		
+		<section class="error-info">
+		  <h4>info here</h4>
+		</section>
 
-    <!-- section for dealing with data storage, S3 buckets, ...-->
+		<!-- section for dealing with data storage, S3 buckets, ...-->
 		<section class="data-storage">
 			<h4 class="section-header">buckets:</h4>
 			<section class="content content-hidden">
@@ -35,11 +53,11 @@
 					<tbody>
 					</tbody>
 				</table>
-        <section>
-          <h4 class="label">New bucket name:</h4><input type="text" id="new-bucket-name"/><h4 id="new-bucket-add" class="button"> Add Bucket </h4>
-        </section>
-        <h4 class="section-header">bucket contents: </h4>
-        <table id="table-bucket-contents">
+				<section>
+				  <h4 class="label">New bucket name:</h4><input type="text" id="new-bucket-name"/><h4 id="new-bucket-add" class="button"> Add Bucket </h4>
+				</section>
+				<h4 class="section-header">bucket contents: </h4>
+				<table id="table-bucket-contents">
 					<thead>
 						<tr>
 							<th>del</th>
@@ -50,10 +68,55 @@
 					<tbody>
 					</tbody>
 				</table>
-        <section>
-          <h4 class="label">Upload new file</h4><input type="file" class="file" id="file-input"/><h4 id="new-bucket-item-add" class="button"> Upload </h4>
-        </section>
-      </section>
-    </section>
-  </body>
+				<section>
+				  <h4 class="label">Upload new file</h4><input type="file" class="file" id="file-input"/><h4 id="new-bucket-item-add" class="button"> Upload </h4>
+				</section>
+			</section>
+		</section>
+		
+		
+		<section class="header">
+			<h4>User space (3-legged auth):</h4>
+		</section>
+		<!-- section for dealing with hubs, BIM360, ...-->
+		<section class="hubs">
+			<h4 class="section-header">hubs:</h4>
+			<section class="content content-hidden">
+				<table id="table-hubs">
+					<thead>
+						<tr>
+							<th>id</th>
+						</tr>
+					</thead>
+					<tbody>
+					</tbody>
+				</table>
+				
+				<h4 class="section-header">hub content: </h4>
+				<div id="jstree"> 
+					<ul>
+					  <li>Root node 1
+						<ul>
+						  <li id="child_node_1">Child node 1</li>
+						  <li>Child node 2</li>
+						</ul>
+					  </li>
+					  <li>Root node 2</li>
+					</ul>
+				</div>
+				<!--table id="table-hub-contents">
+					<thead>
+						<tr>
+							<th>name</th>
+						</tr>
+					</thead>
+					<tbody>
+					</tbody>
+				</table-->
+			</section>
+		</section>
+		
+		<div id="MyViewerDiv"></div>
+		
+	</body>
 </html>

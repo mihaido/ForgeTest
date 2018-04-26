@@ -1,5 +1,6 @@
 body{
 	width: 900px;
+	margin: 0;
 }
 
 div{
@@ -56,4 +57,12 @@ tr{
 .login{
 	color: #00f;
 	cursor: pointer;
+}
+
+#MyViewerDiv {
+	width: 900px;
+	height: 600px;
+	margin: 0;
+	background-color: #F0F8FF;
+	position: relative;
 }
