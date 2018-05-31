@@ -4,8 +4,12 @@ var Secret = require('./secret.js');
 
 var autoRefresh = true; // or false
 
-var REDIRECT_URL = 'http://localhost:3000/auth3l';
-var oAuth2ThreeLegged = new ForgeSDK.AuthClientThreeLegged(Secret.CLIENT_ID, Secret.CLIENT_SECRET, 
+//
+// addresses need to match (from domain point of view) otherwise we loose the cookies
+var baseServerAddress = 'http://bucs4bu0930.ads.autodesk.com:3000';
+var REDIRECT_URL = 'http://bucs4bu0930.ads.autodesk.com:3000/auth3l';
+
+var oAuth2 = new ForgeSDK.AuthClientThreeLegged(Secret.CLIENT_ID, Secret.CLIENT_SECRET, 
   REDIRECT_URL, 
 [
 	'user-profile:read',
@@ -21,47 +25,103 @@ var oAuth2ThreeLegged = new ForgeSDK.AuthClientThreeLegged(Secret.CLIENT_ID, Sec
 	'account:read',
 	'account:write'
 ], autoRefresh);
-var continueUrl = 'http://bucs4bu0930:8080';
-var curr3lCredentials;
+
+//var curr3lCredentials; stop using this, move to use the cookie instead
+
+var authContinueUrl = baseServerAddress;
+
+var ensureValidToken = function (credentials) {
+    return new Promise(function (resolve, reject) {
+       //
+       // if we were ever authorized
+       if (null != credentials) {
+          if (new Date(credentials.expires_at - 300).getTime() > Date.now())
+             resolve(credentials);
+          else {
+            oAuth2.refreshToken(credentials).then(
+                function (newCredentials) {
+                  //credentials = newCredentials;
+                  resolve(credentials);
+                },
+                function (err) {
+                  reject(err);
+                }
+             );
+          }
+       }
+       else
+          reject({ statusMessage:'not authorized'});
+    });
+}
+
+var getPostAuthRedirect = function(res){
+    if(res.cookies){
+        currRedirectRequest = res.cookies['postAuthRedirect'];
+        if(currRedirectRequest){
+            return currRedirectRequest;
+        }
+        else
+            return authContinueUrl;
+    }
+    else
+        return authContinueUrl;
+}
 
 module.exports = {
 
-    setupCredentials : function(authorizationCode, res){
-        oAuth2ThreeLegged.getToken(authorizationCode).then(
+    authContinueUrl,
+    
+    oAuth2,
+
+    ensureValidToken,
+
+    getPostAuthRedirect,
+
+    setupCredentials : function(authorizationCode, res, state){
+        oAuth2.getToken(authorizationCode).then(
         function (credentials) {
-            curr3lCredentials = credentials;
-            res.writeHead(301, { Location: continueUrl });
+            
+            res.cookie('credentials', credentials);
+            //var redirectAddr = getPostAuthRedirect(res);
+            if(state){
+                res.writeHead(301, { Location: state });
+            }
+            
             res.end();
         },
         function (error) {
         });
     },
 
-    generateAuthUrl : function() {
-        return oAuth2ThreeLegged.generateAuthUrl();
+    generateAuthUrl : function(state) {
+        return oAuth2.generateAuthUrl(state);
     },
 
-    ensureValidToken : function () {
+    getAndRefreshCredentials : function(req, res){
         return new Promise(function (resolve, reject) {
-           //
-           // if we were ever authorized
-           if (null != curr3lCredentials) {
-              if (new Date(curr3lCredentials.expires_at - 300).getTime() > Date.now())
-                 resolve({auth:oAuth2ThreeLegged, credentials:curr3lCredentials});
-              else {
-                 oAuth2ThreeLegged.refreshToken(curr3lCredentials).then(
-                    function (credentials) {
-                      curr3lCredentials = credentials;
-                      resolve({auth:oAuth2ThreeLegged, credentials:curr3lCredentials});
-                    },
-                    function (err) {
-                      reject(err);
+            if(!req.cookies)
+                reject({ statusMessage:'invalid credentials'});
+            else{
+                currCredentials = req.cookies['credentials'];
+                
+                if(currCredentials){
+                    if (new Date(currCredentials.expires_at).getTime() - 1000 < Date.now()){
+                        ensureValidToken(currCredentials).then(
+                            function(credentials){
+                                res.cookie('credentials', credentials);
+                                resolve(credentials);
+                            },
+                            function(error){
+                                reject(error);
+                            }
+                        )
                     }
-                 );
-              }
-           }
-           else
-              reject({ statusMessage:'not authorized'});
+                    else
+                        resolve(currCredentials);
+                }
+                else
+                    reject({ statusMessage:'invalid credentials'});
+            }
         });
     },
 }

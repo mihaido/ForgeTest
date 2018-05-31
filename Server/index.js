@@ -1,20 +1,37 @@
 var express = require('express')
+var cookieParser = require('cookie-parser')
+
 var app = express()
 
 var allowCrossDomain = function (req, res, next) {
-	res.header('Access-Control-Allow-Origin', '*');
-	res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-	res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
-
-	// intercept OPTIONS method
+	
+  // intercept OPTIONS method
+  
 	if ('OPTIONS' == req.method) {
-		res.send(200);
+    if(req.headers['origin'])
+    {
+      var origin = req.headers['origin'];
+      if(origin)
+      {
+        res.header('Origin', origin);
+        //res.header('Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+      }
+    }  
+
+    res.send(200);
 	}
 	else {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+
 		next();
-	}
+  }
 };
 app.use(allowCrossDomain);
+
+app.use(cookieParser());
 
 var bodyParser = require('body-parser')
 app.use(bodyParser.json());       // to support JSON-encoded bodies
@@ -33,15 +50,17 @@ var AuthUser = require('./auth-3-leg.js');
 var ErrHand = require('./error-handling.js');
 
 
-
 app.listen(3000, function () {
   console.log('Example app listening on port 3000!')
 })
+
+app.use(express.static('D:/Sources/Mihai/ForgeTest/Client'));
 
 //
 // standard response if you call this service with no purpose
 app.get('/', function (req, res) {
   res.send('Hello World!')
+  //res.sendFile('D:/Sources/Mihai/ForgeTest/Client/index.html');
 })
 
 //
@@ -66,13 +85,28 @@ app.get('/auth3l', function (req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
 
-  AuthUser.setupCredentials(req.query.code, res);
+  AuthUser.setupCredentials(req.query.code, res, req.query.state);
 });
+
 
 app.get('/login', function (req, res) {
 
-  var url = AuthUser.generateAuthUrl();
-  res.redirect(url);
+  var bDoAuth = false;
+
+  var postAuthRedir = AuthUser.getPostAuthRedirect(req);
+
+  AuthUser.getAndRefreshCredentials(req, res).then(
+    function(credentials){
+      // redirect directly to end of auth
+      res.redirect(postAuthRedir);
+    },
+    function(error){
+      //
+      // redirect to auth address
+      var url = AuthUser.generateAuthUrl(postAuthRedir);
+      res.redirect(url);
+    }
+  );
 });
 
 app.get('/getAuthUserName', function (req, res) {
@@ -80,10 +114,10 @@ app.get('/getAuthUserName', function (req, res) {
 
   res.setHeader('Content-Type', 'application/json');
 
-  AuthUser.ensureValidToken().then(
-     function (result) {
+  AuthUser.getAndRefreshCredentials(req, res).then(
+     function (credentials) {
         var UserProfileApi = new ForgeSDK.UserProfileApi();
-        UserProfileApi.getUserProfile(result.auth, result.credentials).then(
+        UserProfileApi.getUserProfile(AuthUser.oAuth2, credentials).then(
            function (user) {
               ErrHand.returnOk(res, { name: user.body.firstName + ' ' + user.body.lastName });
            },

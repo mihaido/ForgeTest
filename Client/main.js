@@ -2,6 +2,8 @@
 var bucketsVisible = false;
 var hubsVisible = false;
 
+var serviceUrl = 'http://bucs4bu0930.ads.autodesk.com:3000';
+
 $(document).ready(function(){
     var bucketsSection = $('.data-storage');
 	var buckClickSection = bucketsSection.find('.section-header');
@@ -61,8 +63,34 @@ $(document).ready(function(){
 		}
 	);
 	
+	/* Mihai: this does not work because of CORS
+	$('#login').on('click', function(){
+		login();
+	});*/
 	
 });
+
+/* Mihai: this does not work because of CORS
+var login = function(){
+	buildServerRequest(
+				'get',
+				'login',
+				'',
+				function(response, resObj){
+					if(null != resObj){
+						if('body' in resObj){
+							var urn = 'urn:' + resObj.body.urn;
+							//var urn = resObj.body.derivatives[0].children[0].urn;
+							
+							Autodesk.Viewing.Document.load(urn, onDocumentLoadSuccess, onDocumentLoadFailure);
+						}
+					}
+				},
+				function(error){
+					reportError('failed to login: ' + error.statusMessage);
+				},
+				false);
+}*/
 
 var initTree = function(){
 	var tree = $('#jstree');
@@ -172,7 +200,7 @@ var buildServerRequest = function(callType, endPoint, params, fcSucceed, fcFail,
     // Check if the XMLHttpRequest object has a "withCredentials" property.
     // "withCredentials" only exists on XMLHTTPRequest2 objects.
 
-		var url = 'http://bucs4bu0930:3000/' + endPoint;
+		var url = serviceUrl + '/' + endPoint;
 
 		if('get' == callType){
 			if(null != params){
@@ -184,6 +212,11 @@ var buildServerRequest = function(callType, endPoint, params, fcSucceed, fcFail,
         if((bContentType == null) || (bContentType == true)) // by default set content type
             xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 
+		xhr.setRequestHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8");
+		//xhr.setRequestHeader("Upgrade-Insecure-Requests", "1");
+		//xhr.setRequestHeader("ORIGIN", "*");
+		//xhr.setRequestHeader("Access-Control-Allow-Origin", "*");
+			
 		xhr.onload = function(){
 			var response = xhr.responseText;
 

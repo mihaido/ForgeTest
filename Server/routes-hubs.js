@@ -10,9 +10,9 @@ var ErrHand = require('./error-handling.js');
 module.exports = function(app){
 
     app.get('/getHubs', function (req, res) {
-        AuthUser.ensureValidToken().then(
-          function(authInfo){
-            HubsAPI.getHubs({}, authInfo.auth, authInfo.credentials).then(
+        AuthUser.getAndRefreshCredentials(req, res).then(
+          function(credentials){
+            HubsAPI.getHubs({}, AuthUser.oAuth2, credentials).then(
             function (hubs) {
                 ErrHand.returnOk(res, hubs);
             },
@@ -31,9 +31,9 @@ module.exports = function(app){
     
         var id = req.query.id;
     
-        AuthUser.ensureValidToken().then( 
-            function (authInfo) {
-                ProjectsAPI.getHubProjects(id, null, authInfo.auth, authInfo.credentials).then(
+        AuthUser.getAndRefreshCredentials(req, res).then( 
+            function (credentials) {
+                ProjectsAPI.getHubProjects(id, null, AuthUser.oAuth2, credentials).then(
                 function (result) {
                     ErrHand.returnOk(res, result);
                 },
@@ -53,9 +53,9 @@ module.exports = function(app){
         var hubId = req.query.hubId;
         var projId = req.query.projId;
     
-        AuthUser.ensureValidToken().then( 
-            function (authInfo) {
-                ProjectsAPI.getProjectTopFolders(hubId, projId, authInfo.auth, authInfo.credentials).then(
+        AuthUser.getAndRefreshCredentials(req, res).then( 
+            function (credentials) {
+                ProjectsAPI.getProjectTopFolders(hubId, projId, AuthUser.oAuth2, credentials).then(
                 function (result) {
                     ErrHand.returnOk(res, result);
                 },
@@ -75,9 +75,9 @@ module.exports = function(app){
         var projId = req.query.projId;
         var foldId = req.query.foldId;
     
-        AuthUser.ensureValidToken().then( 
-            function (authInfo) {
-                FoldersAPI.getFolderContents(projId, foldId, null, authInfo.auth, authInfo.credentials).then(
+        AuthUser.getAndRefreshCredentials(req, res).then( 
+            function (credentials) {
+                FoldersAPI.getFolderContents(projId, foldId, null, AuthUser.oAuth2, credentials).then(
                 function (result) {
                     ErrHand.returnOk(res, result);
                 },

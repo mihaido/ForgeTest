@@ -19,10 +19,10 @@ var upload = multer(/*{ dest: 'uploads/' }*/)
  * Uses the oAuth2TwoLegged object that you retrieved previously.
  * @param bucketKey
  */
-var createBucket = function (bucketKey, authInfo) {
+var createBucket = function (bucketKey, credentials) {
     console.log("**** Creating Bucket : " + bucketKey);
     var createBucketJson = { 'bucketKey': bucketKey, 'policyKey': 'temporary' };
-    return BucketsApi.createBucket(createBucketJson, {}, authInfo.auth, authInfo.credentials);
+    return BucketsApi.createBucket(createBucketJson, {}, AuthApp.oAuth2, credentials);
 };
 
 /**
@@ -30,9 +30,9 @@ var createBucket = function (bucketKey, authInfo) {
  * Uses the oAuth2TwoLegged object that you retrieved previously.
  * @param bucketKey
  */
-var getBucketDetails = function (bucketKey, authInfo) {
+var getBucketDetails = function (bucketKey, credentials) {
     console.log("**** Getting bucket details : " + bucketKey);
-    return BucketsApi.getBucketDetails(bucketKey, authInfo.auth, authInfo.credentials);
+    return BucketsApi.getBucketDetails(bucketKey, AuthApp.oAuth2, credentials);
 };
 
 /**
@@ -41,26 +41,27 @@ var getBucketDetails = function (bucketKey, authInfo) {
  * @param bucketKey
  * @returns {Promise - details of the bucket in Forge}
  */
-var createBucketIfNotExist = function (bucketKey, authInfo) {
+var createBucketIfNotExist = function (bucketKey, credentials) {
     console.log("**** Creating bucket if not exist :", bucketKey);
 
     return new Promise(function (resolve, reject) {
-        getBucketDetails(bucketKey, authInfo).then(function (resp) {
-        resolve(resp);
-        },
-        function (err) {
-            if (err.statusCode === 404) {
-                createBucket(bucketKey, authInfo).then(function (res) {
-                    resolve(res);
-                },
-                    function (err) {
+        getBucketDetails(bucketKey, credentials).then(
+            function (resp) {
+                resolve(resp);
+            },
+            function (err) {
+                if (err.statusCode === 404) {
+                    createBucket(bucketKey, credentials).then(function (res) {
+                        resolve(res);
+                    },
+                        function (err) {
+                        reject(err);
+                        })
+                }
+                else {
                     reject(err);
-                    })
-            }
-            else {
-                reject(err);
-            }
-        });
+                }
+            });
     });
 };
 
@@ -71,9 +72,9 @@ module.exports = function(app){
 
     app.get('/getBuckets', function (req, res) {
 
-        AuthApp.ensureValidToken().then(
-        function(authInfo){
-            BucketsApi.getBuckets({}, authInfo.auth, authInfo.credentials).then(
+        AuthApp.getAndRefreshCredentials(req, res).then(
+        function(credentials){
+            BucketsApi.getBuckets({}, AuthApp.oAuth2, credentials).then(
             function (buckets) {
                 ErrHand.returnOk(res, buckets);
             },
@@ -90,9 +91,9 @@ module.exports = function(app){
     
         var name = req.body.name;
     
-        AuthApp.ensureValidToken().then(
-        function(authInfo){
-            createBucketIfNotExist(name + '_' + Secret.CLIENT_ID.toLowerCase(), authInfo).then(
+        AuthApp.getAndRefreshCredentials(req, res).then(
+        function(credentials){
+            createBucketIfNotExist(name + '_' + Secret.CLIENT_ID.toLowerCase(), credentials).then(
             function () {
                 ErrHand.returnOk(res);
             },
@@ -110,9 +111,9 @@ module.exports = function(app){
     
         var name = req.body.name;
     
-        AuthApp.ensureValidToken().then(
-        function(authInfo){
-            BucketsApi.deleteBucket(name, authInfo.auth, authInfo.credentials).then(
+        AuthApp.getAndRefreshCredentials(req, res).then(
+        function(credentials){
+            BucketsApi.deleteBucket(name, AuthApp.oAuth2, credentials).then(
                     function () {
                         ErrHand.returnOk(res);
                     },
@@ -135,9 +136,9 @@ module.exports = function(app){
     
         var name = req.query.name;
     
-        AuthApp.ensureValidToken().then( 
-        function (authInfo) {
-            ObjectsApi.getObjects(name, null, authInfo.auth, authInfo.credentials).then(
+        AuthApp.getAndRefreshCredentials(req, res).then( 
+        function (credentials) {
+            ObjectsApi.getObjects(name, null, AuthApp.oAuth2, credentials).then(
             function (result) {
                 ErrHand.returnOk(res, result);
             },
@@ -156,9 +157,9 @@ module.exports = function(app){
         var fileName = req.body.fileName;
         var fileData = req.file;
     
-        AuthApp.ensureValidToken().then( 
-            function (authInfo) {
-                ObjectsApi.uploadObject(bucketName, fileName, fileData.size, fileData.buffer, {}, authInfo.auth, authInfo.credentials).then(
+        AuthApp.getAndRefreshCredentials(req, res).then( 
+            function (credentials) {
+                ObjectsApi.uploadObject(bucketName, fileName, fileData.size, fileData.buffer, {}, AuthApp.oAuth2, credentials).then(
                     function (info) {
                         ErrHand.returnOk(res);
                     }, 
@@ -176,9 +177,9 @@ module.exports = function(app){
         var bucketname = req.body.bucketname;
         var name = req.body.name;
     
-        AuthApp.ensureValidToken().then( 
-        function(authInfo){
-            ObjectsApi.deleteObject(bucketName, name, authInfo.auth, authInfo.credentials).then(
+        AuthApp.getAndRefreshCredentials(req, res).then( 
+        function(credentials){
+            ObjectsApi.deleteObject(bucketName, name, AuthApp.oAuth2, credentials).then(
                     function () {
                         ErrHand.returnOk(res);
                     },

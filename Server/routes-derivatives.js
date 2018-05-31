@@ -12,9 +12,9 @@ var base64Format = require("base64-format");
 module.exports = function(app){
 
     app.get('/getViewerToken', function (req, res) {
-        AuthUser.ensureValidToken().then(
-            function(authInfo){
-                ErrHand.returnOk(res, {token: authInfo.credentials.access_token});
+        AuthUser.getAndRefreshCredentials(req, res).then(
+            function(credentials){
+                ErrHand.returnOk(res, {token: credentials.access_token});
             },
             function (error){
                 ErrHand.returnErr(res, 'User authentication failed: ' + error['more info']);
@@ -24,17 +24,17 @@ module.exports = function(app){
     app.get('/getViewableTipVersion', function (req, res) {
 
         var projId = req.query.projId;
-        AuthUser.ensureValidToken().then(
-            function(authInfo){
+        AuthUser.getAndRefreshCredentials(req, res).then(
+            function(credentials){
 
-                ItemsAPI.getItemTip(projId, req.query.itemId, authInfo.auth, authInfo.credentials).then(
+                ItemsAPI.getItemTip(projId, req.query.itemId, AuthUser.oAuth2, credentials).then(
                     function (result) {
                         
                         var itemId = result.body.data.id;
                         var itemIdB64 = Buffer.from(itemId).toString("base64");
                         var itemIdB64Safe = base64Format({from:"base64", to:"rfc4648_ni"}, itemIdB64);
 
-                        DerivativesAPI.getManifest(itemIdB64Safe, null, authInfo.auth, authInfo.credentials).then(
+                        DerivativesAPI.getManifest(itemIdB64Safe, null, AuthUser.oAuth2, credentials).then(
                             function (result) {
                                 ErrHand.returnOk(res, result);
                             },
