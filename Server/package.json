@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/mihaido/ForgeTest#readme",
   "dependencies": {
+    "@adsk/forge-hfdm": "^0.1.62",
     "base64-format": "^0.1.2",
     "body-parser": "^1.17.1",
     "cookie-parser": "^1.4.3",

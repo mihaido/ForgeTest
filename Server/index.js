@@ -75,6 +75,9 @@ require('./routes-hubs.js')(app)
 // add derivatives routes
 require('./routes-derivatives.js')(app)
 
+//
+// add hfdm routes
+require('./routes-hfdm.js')(app)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // three legged auth

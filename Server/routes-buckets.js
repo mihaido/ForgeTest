@@ -90,21 +90,27 @@ module.exports = function(app){
     app.post('/addBucket', function (req, res) {
     
         var name = req.body.name;
-    
+        
         AuthApp.getAndRefreshCredentials(req, res).then(
-        function(credentials){
-            createBucketIfNotExist(name + '_' + Secret.CLIENT_ID.toLowerCase(), credentials).then(
-            function () {
-                ErrHand.returnOk(res);
+            function(credentials){
+
+                //
+                // buckets names have restrictions:
+                // "Bucket key must match "^[-_.a-z0-9]{3,128}$"
+                // That is bucket must be between 3 to 128 characters long and contain only lowercase letters, numbers and the symbols . _ -"
+                name = encodeURIComponent(name).toLowerCase();
+
+                createBucketIfNotExist(name /*+ '_' + Secret.CLIENT_ID.toLowerCase()*/, credentials).then(
+                    function () {
+                        ErrHand.returnOk(res);
+                    },
+                    function (err) {
+                        ErrHand.returnErr(res, err.statusMessage);
+                    });
             },
-            function (err) {
-                ErrHand.returnErr(res, err.statusMessage);
-            }
-            );
-        },
-        function (error){
-            ErrHand.returnErr(res, 'Application authentication failed: ' + error['more info']);
-        });
+            function (error){
+                ErrHand.returnErr(res, 'Application authentication failed: ' + error['more info']);
+            });
     })
     
     app.post('/delBucket', function (req, res) {
@@ -112,18 +118,25 @@ module.exports = function(app){
         var name = req.body.name;
     
         AuthApp.getAndRefreshCredentials(req, res).then(
-        function(credentials){
-            BucketsApi.deleteBucket(name, AuthApp.oAuth2, credentials).then(
+            function(credentials){
+
+                //
+                // buckets names have restrictions:
+                // "Bucket key must match "^[-_.a-z0-9]{3,128}$"
+                // That is bucket must be between 3 to 128 characters long and contain only lowercase letters, numbers and the symbols . _ -"
+                name = encodeURIComponent(name).toLowerCase();
+
+                BucketsApi.deleteBucket(name, AuthApp.oAuth2, credentials).then(
                     function () {
                         ErrHand.returnOk(res);
                     },
                     function (err) {
                         ErrHand.returnErr(res, err.statusMessage);
                     });
-        },
-        function (error){
-            ErrHand.returnErr(res, 'Application authentication failed: ' + error['more info']);
-        });
+            },
+            function (error){
+                ErrHand.returnErr(res, 'Application authentication failed: ' + error['more info']);
+            });
     })
     
     
@@ -137,18 +150,25 @@ module.exports = function(app){
         var name = req.query.name;
     
         AuthApp.getAndRefreshCredentials(req, res).then( 
-        function (credentials) {
-            ObjectsApi.getObjects(name, null, AuthApp.oAuth2, credentials).then(
-            function (result) {
-                ErrHand.returnOk(res, result);
+            function (credentials) {
+
+                //
+                // buckets names have restrictions:
+                // "Bucket key must match "^[-_.a-z0-9]{3,128}$"
+                // That is bucket must be between 3 to 128 characters long and contain only lowercase letters, numbers and the symbols . _ -"
+                name = encodeURIComponent(name).toLowerCase();
+
+                ObjectsApi.getObjects(name, null, AuthApp.oAuth2, credentials).then(
+                    function (result) {
+                        ErrHand.returnOk(res, result);
+                    },
+                    function (err) {
+                        ErrHand.returnErr(res, err.statusMessage);
+                    });
             },
-            function (err) {
-                ErrHand.returnErr(res, err.statusMessage);
+            function (error) {
+                ErrHand.returnErr(res, 'Application authentication failed: ' + error['more info']);
             });
-        },
-        function (error) {
-            ErrHand.returnErr(res, 'Application authentication failed: ' + error['more info']);
-        });
     });
     
     app.post('/uploadFile', upload.single('fileData'), function (req, res) {
@@ -159,11 +179,49 @@ module.exports = function(app){
     
         AuthApp.getAndRefreshCredentials(req, res).then( 
             function (credentials) {
+
+                //
+                // buckets names have restrictions:
+                // "Bucket key must match "^[-_.a-z0-9]{3,128}$"
+                // That is bucket must be between 3 to 128 characters long and contain only lowercase letters, numbers and the symbols . _ -"
+                bucketName = encodeURIComponent(bucketName).toLowerCase();
+
                 ObjectsApi.uploadObject(bucketName, fileName, fileData.size, fileData.buffer, {}, AuthApp.oAuth2, credentials).then(
                     function (info) {
-                        ErrHand.returnOk(res);
+                        ErrHand.returnOk(res, {objectId:info.body.objectId, objectKey:info.body.objectKey});
                     }, 
-            function (err) {
+                    function (err) {
+                        ErrHand.returnErr(res, err.statusMessage);
+                    })
+            },
+            function (error) {
+                ErrHand.returnErr(res, 'Application authentication failed: ' + error['more info']);
+            });
+    });
+
+    app.get('/downloadFile', function (req, res) {
+        
+        var bucketName = req.query.bucketName;
+        var fileName = req.query.fileName;
+    
+        AuthApp.getAndRefreshCredentials(req, res).then( 
+            function (credentials) {
+
+                //
+                // buckets names have restrictions:
+                // "Bucket key must match "^[-_.a-z0-9]{3,128}$"
+                // That is bucket must be between 3 to 128 characters long and contain only lowercase letters, numbers and the symbols . _ -"
+                bucketName = encodeURIComponent(bucketName).toLowerCase();
+
+                ObjectsApi.getObject(bucketName, fileName, {}, AuthApp.oAuth2, credentials).then(
+                    function (info) {
+                        res.setHeader('Content-Length', info.headers['content-length']);
+                        res.writeHead(200);
+                        res.write(info.body);
+                        
+                        res.end();
+                    }, 
+                    function (err) {
                         ErrHand.returnErr(res, err.statusMessage);
                     })
             },
@@ -178,17 +236,24 @@ module.exports = function(app){
         var name = req.body.name;
     
         AuthApp.getAndRefreshCredentials(req, res).then( 
-        function(credentials){
-            ObjectsApi.deleteObject(bucketName, name, AuthApp.oAuth2, credentials).then(
+            function(credentials){
+
+                //
+                // buckets names have restrictions:
+                // "Bucket key must match "^[-_.a-z0-9]{3,128}$"
+                // That is bucket must be between 3 to 128 characters long and contain only lowercase letters, numbers and the symbols . _ -"
+                name = encodeURIComponent(name).toLowerCase();
+
+                ObjectsApi.deleteObject(bucketName, name, AuthApp.oAuth2, credentials).then(
                     function () {
                         ErrHand.returnOk(res);
                     },
                     function (err) {
                         ErrHand.returnErr(res, err);
                     });
-        },
-        function (error){
-            ErrHand.returnErr(res, 'Application authentication failed: ' + error['more info']);
-        });
+            },
+            function (error){
+                ErrHand.returnErr(res, 'Application authentication failed: ' + error['more info']);
+            });
     })
 }
